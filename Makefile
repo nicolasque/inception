@@ -28,5 +28,11 @@ clean:
 # Regla para reiniciar y reconstruir todo
 re: clean all
 
+# Regla para limpiar todo el sistema Docker (contenedores, imágenes, volúmenes, redes)
+prune:
+	@echo "Limpiando todo el sistema Docker..."
+	@docker system prune -a --volumes -f
+	@echo "Sistema Docker limpiado completamente."
+
 # Indica a 'make' que estas no son carpetas
-.PHONY: all down clean re
+.PHONY: all down clean re prune

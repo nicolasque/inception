@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM alpine:3.19
 
 # Instalamos php-fpm y las extensiones que WordPress necesita.
 # 'mariadb-client' es necesario para que 'wp-cli' pueda conectarse a la BBDD.
@@ -10,9 +10,12 @@ RUN apk add --no-cache \
     php82-json \
     php82-curl \
     php82-gd \
+    php82-phar \
     php82-mbstring \
     mariadb-client \
     curl
+
+RUN sed -i 's/memory_limit = 128M/memory_limit = 512M/' /etc/php82/php.ini
 
 # Descargamos wp-cli
 RUN curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar

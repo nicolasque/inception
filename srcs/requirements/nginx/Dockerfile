@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM alpine:3.19
 
 # Instalamos nginx, openssl (para los certificados) y gettext (para 'envsubst')
 RUN apk add --no-cache nginx openssl gettext

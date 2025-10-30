@@ -5,6 +5,10 @@
 # pequeña espera aquí no hace daño.
 sleep 5
 
+echo "--- Probando conexión a internet ---"
+ping -c 3 google.com
+echo "--- Fin del test de conexión ---"
+
 # Nos movemos al directorio de WordPress
 cd /var/www/html
 
@@ -54,6 +58,8 @@ if [ ! -f "wp-config.php" ]; then
 else
     echo "WordPress ya está instalado."
 fi
+
+chown -R nobody:nobody /var/www/html
 
 # --- Lanzamiento del Servicio ---
 # 'exec' reemplaza este script con el proceso de php-fpm.
