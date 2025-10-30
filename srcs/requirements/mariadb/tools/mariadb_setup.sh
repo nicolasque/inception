@@ -51,4 +51,5 @@ fi
 # 'exec' reemplaza este script con el proceso 'mysqld_safe',
 # cediéndole el PID 1. Esto cumple la regla de no usar 'hacks'[cite: 103].
 echo "Lanzando MariaDB..."
+# CORRECTO
 exec mysqld_safe --datadir=$DATADIR

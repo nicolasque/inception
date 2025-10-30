@@ -1,5 +1,5 @@
 # Versión moderna de Docker Compose
-version: '3.8'
+# version: '3.8'
 
 services:
   # --- Servicio de Base de Datos MariaDB ---
@@ -33,7 +33,7 @@ services:
     # Este es el 'healthcheck' que mencionaste.
     # Docker lo usará para saber si el contenedor está listo.
     healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "--host=localhost"]
+      test: ["CMD-SHELL", "mariadb-admin ping --host=localhost --user=root --password=$$DB_ROOT_PASS"]
       interval: 5s
       timeout: 2s
       retries: 5
