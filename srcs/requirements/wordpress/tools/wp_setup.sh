@@ -16,27 +16,34 @@ cd /var/www/html
 if [ ! -f "wp-config.php" ]; then
     echo "WordPress no encontrado. Instalando..."
 
-    # Descarga los archivos de WordPress
-    wp core download --allow-root
+    # Descarga los archivos de WordPress (--force por si hay archivos parciales)
+    wp core download --allow-root --force
 
-    # Bucle de espera para la base de datos.
-    # wp-cli es más fiable que 'mariadb-admin ping'
-    until wp db check --allow-root --path=/var/www/html \
-        --dbhost=mariadb \
-        --dbname=$DB_NAME \
-        --dbuser=$DB_USER \
-        --dbpass=$DB_PASS
-    do
-        echo "Esperando a que la base de datos esté lista..."
-        sleep 2
+    # Espera a que MariaDB esté disponible en el puerto 3306
+    echo "Esperando a que MariaDB esté disponible..."
+    until nc -z mariadb 3306; do
+        echo "MariaDB aún no responde en el puerto 3306..."
+        sleep 3
     done
+    echo "MariaDB está disponible!"
+
+    # Pequeña espera adicional para asegurar que MariaDB está completamente inicializado
+    sleep 3
 
     # Crea el archivo wp-config.php
     wp config create --allow-root \
         --dbhost=mariadb \
         --dbname=$DB_NAME \
         --dbuser=$DB_USER \
-        --dbpass=$DB_PASS
+        --dbpass=$DB_PASS \
+        --skip-check
+
+    # Ahora verifica que la base de datos funciona
+    until wp db check --allow-root
+    do
+        echo "Esperando a que la base de datos esté completamente lista..."
+        sleep 2
+    done
 
     # Instala WordPress
     # ¡Importante! [cite_start]El admin user NO PUEDE ser 'admin' [cite: 699]

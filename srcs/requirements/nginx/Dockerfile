@@ -1,7 +1,8 @@
 FROM alpine:3.19
 
-# Instalamos nginx, openssl (para los certificados) y gettext (para 'envsubst')
-RUN apk add --no-cache nginx openssl gettext
+# Instalamos nginx, openssl (para los certificados), gettext (para 'envsubst')
+# y netcat-openbsd (para el healthcheck)
+RUN apk add --no-cache nginx openssl gettext netcat-openbsd
 
 # Copiamos nuestra plantilla de configuración de NGINX
 # La llamamos .template porque le vamos a sustituir variables

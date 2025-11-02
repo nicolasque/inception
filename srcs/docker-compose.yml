@@ -33,14 +33,12 @@ services:
     # Este es el 'healthcheck' que mencionaste.
     # Docker lo usará para saber si el contenedor está listo.
     healthcheck:
-      test: ["CMD-SHELL", "mariadb-admin ping --host=localhost --user=root --password=$$DB_ROOT_PASS"]
+      test: [ "CMD-SHELL", "mariadb-admin ping --host=localhost --user=root --password=$$DB_ROOT_PASS" ]
       interval: 5s
       timeout: 2s
       retries: 5
 
-
-
-# --- Servicio de WordPress ---
+  # --- Servicio de WordPress ---
   wordpress:
     build:
       context: ./requirements/wordpress
@@ -75,8 +73,15 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+    # Healthcheck para verificar que php-fpm está respondiendo
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 9000 || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
 
-# --- Servicio NGINX (Punto de Entrada) ---
+  # --- Servicio NGINX (Punto de Entrada) ---
   nginx:
     build:
       context: ./requirements/nginx
@@ -99,7 +104,15 @@ services:
       - ${WP_DATA_PATH}:/var/www/html
     # NGINX debe esperar a que WordPress esté listo
     depends_on:
-      - wordpress
+      wordpress:
+        condition: service_healthy
+    # Healthcheck para verificar que nginx está sirviendo HTTPS
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 443 || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
 # --- Definición de la Red Privada ---
 networks:
