@@ -1,5 +1,5 @@
 # Incluimos el .env para que 'make' conozca las rutas de los volúmenes
-include srcs/.env
+include secrets/.env
 export
 
 # Variable para el archivo de compose
