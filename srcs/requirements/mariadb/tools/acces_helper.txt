@@ -1,0 +1,8 @@
+# comando para entra como root 
+
+mariadb -u root -p
+
+# comando para entra como nquecedo 
+
+mariadb -u nquecedo -p
+

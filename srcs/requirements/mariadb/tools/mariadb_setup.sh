@@ -24,14 +24,12 @@ if [ ! -d "$DATADIR/mysql" ]; then
     # (Estas variables las definirás en tu .env y docker-compose.yml)
 
     # 1. Cambia la contraseña de root
-    mariadb -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';"
-
+mariadb -e "ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('$DB_ROOT_PASS');"
     # 2. Crea tu base de datos de WordPress [cite: 89]
     mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
 
-    # 3. Crea tu usuario de WordPress (¡no 'admin'!) [cite: 107]
-    mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';"
-
+# 3. Crea tu usuario de WordPress Y FUERZA EL PLUGIN de contraseña
+mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED VIA mysql_native_password USING PASSWORD('$DB_PASS');"
     # 4. Da permisos a ese usuario sobre esa base de datos
     mariadb -uroot -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';"
 
@@ -59,7 +57,7 @@ else
         
         # Crea la base de datos y el usuario
         mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-        mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';"
+        mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED VIA mysql_native_password USING PASSWORD('$DB_PASS');"
         mariadb -uroot -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';"
         mariadb -uroot -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
         
