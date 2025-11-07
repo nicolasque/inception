@@ -18,6 +18,9 @@ services:
     # Conecta este servicio a nuestra red privada [cite: 683]
     networks:
       - inception_net
+    # Carga las variables del archivo .env
+    env_file:
+      - .env
     # Aquí es donde pasamos nuestras contraseñas desde el archivo .env
     # Esto cumple la regla de no tener contraseñas en los Dockerfiles [cite: 707, 708]
     environment:
@@ -49,6 +52,9 @@ services:
     # Conecta a la misma red
     networks:
       - inception_net
+    # Carga las variables del archivo .env
+    env_file:
+      - .env
     # Pasa TODAS las variables necesarias al script de setup
     environment:
       # Credenciales de BBDD (para que wp-cli se conecte)
@@ -91,6 +97,9 @@ services:
     restart: on-failure
     networks:
       - inception_net
+    # Carga las variables del archivo .env
+    env_file:
+      - .env
     # Pasa el nombre de dominio para el certificado y la config
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
