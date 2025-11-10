@@ -4,44 +4,30 @@
 services:
   # --- Servicio de Base de Datos MariaDB ---
   mariadb:
-    # 'build' le dice a Docker que construya una imagen desde cero
     build:
-      # 'context' es la ruta a la carpeta donde está el Dockerfile
       context: ./requirements/mariadb
       dockerfile: Dockerfile
-    # Nombra la imagen construida. El subject pide que se llame como el servicio [cite: 669]
     image: mariadb
-    # Nombre del contenedor en ejecución
     container_name: mariadb
-    # Política de reinicio, como pide el subject [cite: 684]
     restart: on-failure
-    # Conecta este servicio a nuestra red privada [cite: 683]
     networks:
       - inception_net
-    # Carga las variables del archivo .env
     env_file:
       - .env
-    # Aquí es donde pasamos nuestras contraseñas desde el archivo .env
-    # Esto cumple la regla de no tener contraseñas en los Dockerfiles [cite: 707, 708]
     environment:
       - DB_ROOT_PASS=${DB_ROOT_PASS}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
-    # Aquí definimos el volumen para los datos de la BBDD [cite: 681]
     volumes:
-      # Mapea una carpeta en tu VM host (definida en .env) [cite: 700]
-      # con la carpeta donde MariaDB guarda sus datos dentro del contenedor.
+
       - ${DB_DATA_PATH}:/var/lib/mysql
-    # Este es el 'healthcheck' que mencionaste.
-    # Docker lo usará para saber si el contenedor está listo.
     healthcheck:
       test: [ "CMD-SHELL", "mariadb-admin ping --host=localhost --user=root --password=$$DB_ROOT_PASS" ]
       interval: 5s
       timeout: 2s
       retries: 5
 
-  # --- Servicio de WordPress ---
   wordpress:
     build:
       context: ./requirements/wordpress
@@ -49,28 +35,21 @@ services:
     image: wordpress
     container_name: wordpress
     restart: on-failure
-    # Conecta a la misma red
     networks:
       - inception_net
-    # Carga las variables del archivo .env
     env_file:
       - .env
-    # Pasa TODAS las variables necesarias al script de setup
     environment:
-      # Credenciales de BBDD (para que wp-cli se conecte)
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
-      # Credenciales de Admin de WordPress
       - DOMAIN_NAME=${DOMAIN_NAME}
       - WP_ADMIN_USER=${WP_ADMIN_USER}
       - WP_ADMIN_PASS=${WP_ADMIN_PASS}
       - WP_ADMIN_EMAIL=${WP_ADMIN_EMAIL}
-      # Credenciales del segundo usuario
       - WP_USER=${WP_USER}
       - WP_PASS=${WP_PASS}
       - WP_EMAIL=${WP_EMAIL}
-    # Monta el volumen para los archivos de WP
     volumes:
       - ${WP_DATA_PATH}:/var/www/html
     # Esta es la clave:
@@ -79,7 +58,6 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
-    # Healthcheck para verificar que php-fpm está respondiendo
     healthcheck:
       test: [ "CMD-SHELL", "nc -z localhost 9000 || exit 1" ]
       interval: 10s
@@ -87,7 +65,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # --- Servicio NGINX (Punto de Entrada) ---
   nginx:
     build:
       context: ./requirements/nginx
@@ -97,25 +74,17 @@ services:
     restart: on-failure
     networks:
       - inception_net
-    # Carga las variables del archivo .env
     env_file:
       - .env
-    # Pasa el nombre de dominio para el certificado y la config
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
-    # Esta es la ÚNICA puerta de entrada [cite: 118]
     ports:
       - "443:443"
-    # NGINX necesita acceso de LECTURA al volumen de WordPress
-    # para servir archivos estáticos (aunque aquí todo pasa por PHP)
-    # y para que la ruta 'root /var/www/html;' funcione.
     volumes:
       - ${WP_DATA_PATH}:/var/www/html
-    # NGINX debe esperar a que WordPress esté listo
     depends_on:
       wordpress:
         condition: service_healthy
-    # Healthcheck para verificar que nginx está sirviendo HTTPS
     healthcheck:
       test: [ "CMD-SHELL", "nc -z localhost 443 || exit 1" ]
       interval: 10s
@@ -123,7 +92,6 @@ services:
       retries: 3
       start_period: 30s
 
-# --- Definición de la Red Privada ---
 networks:
   inception_net:
     driver: bridge

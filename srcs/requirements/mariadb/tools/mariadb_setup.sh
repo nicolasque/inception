@@ -1,67 +1,62 @@
 #!/bin/sh
 
-# Directorio de datos de MariaDB
 DATADIR="/var/lib/mysql"
 
-# Comprueba si la base de datos ya está inicializada
 if [ ! -d "$DATADIR/mysql" ]; then
-    echo "Directorio de datos no encontrado. Inicializando MariaDB..."
+    echo "=== Inicializando MariaDB desde cero ==="
 
-    # Inicializa la estructura de la base de datos
     mariadb-install-db --user=mysql --datadir=$DATADIR
 
-    # Inicia el servidor MariaDB en segundo plano temporalmente
-    # Usamos el .cnf para ser consistentes
+    echo "Iniciando servidor temporal..."
     mysqld_safe --defaults-file=/etc/mysql/my.cnf --datadir=$DATADIR &
 
-    # Espera a que el servidor esté listo
-    while ! mariadb-admin ping --silent; do
+    echo "Esperando a que MariaDB esté listo..."
+    until mariadb-admin ping --silent 2>/dev/null; do
         sleep 1
     done
+    echo "MariaDB respondiendo!"
 
-    echo "Servidor temporal iniciado. Aplicando configuración de seguridad..."
-
-    # --- INICIO DE LA LÓGICA DE SEGURIDAD CORREGIDA ---
-    # Todos los comandos de limpieza se ejecutan con 'unix_socket' (sin -u -p)
-    # ANTES de establecer la contraseña de root.
-
-    # 1. Eliminar usuarios anónimos (LA CAUSA DE TU PROBLEMA)
-    # Esto elimina ''@'localhost' que permite el login sin contraseña.
-    mariadb -e "DELETE FROM mysql.user WHERE User='';"
-
-    # 2. Eliminar la base de datos 'test'
-    mariadb -e "DROP DATABASE IF EXISTS test;"
-    mariadb -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';"
-
-    # 3. Eliminar otros 'root' (Buena práctica)
-    # Dejamos solo root@localhost, que aseguraremos en el paso 4
-    mariadb -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
-
-    # 4. Establecer la contraseña de root
-    # Cambiamos el plugin de 'unix_socket' a 'mysql_native_password'
-    mariadb -e "ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('$DB_ROOT_PASS');"
-
-    # 5. Crear la base de datos de WordPress
-    # A PARTIR DE AQUÍ, usamos -uroot -p"$DB_ROOT_PASS"
-    mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-
-    # 6. Crear el usuario de WordPress para '%' (host externo)
-    mariadb -uroot -p"$DB_ROOT_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED VIA mysql_native_password USING PASSWORD('$DB_PASS');"
+    echo "=== Limpieza de seguridad ==="
     
-    # 7. Dar permisos a ese usuario
-    mariadb -uroot -p"$DB_ROOT_PASS" -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';"
+    mariadb -e "DELETE FROM mysql.user WHERE User='';" 2>/dev/null
+    
+    mariadb -e "DROP DATABASE IF EXISTS test;" 2>/dev/null
+    mariadb -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';" 2>/dev/null
+    
+    mariadb -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');" 2>/dev/null
+    
+    mariadb -e "FLUSH PRIVILEGES;" 2>/dev/null
+    
+    echo "=== Configurando usuario root ==="
 
-    # 8. Aplicar todos los cambios
-    mariadb -uroot -p"$DB_ROOT_PASS" -e "FLUSH PRIVILEGES;"
+    mariadb -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';"
+    mariadb -e "FLUSH PRIVILEGES;"
 
-    # Detiene el servidor temporal (ahora con la contraseña de root)
-    mariadb-admin shutdown -p"$DB_ROOT_PASS"
+    echo "=== Creando base de datos y usuario de WordPress ==="
 
-    echo "Inicialización de MariaDB completada."
+    mariadb -uroot -p"$DB_ROOT_PASS" <<-EOSQL
+        CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;
+        
+        -- Crear usuario con autenticación nativa
+        CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
+        
+        -- Otorgar permisos
+        GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'%';
+        
+        -- Aplicar cambios
+        FLUSH PRIVILEGES;
+EOSQL
+
+    echo "=== Verificando usuario creado ==="
+    mariadb -uroot -p"$DB_ROOT_PASS" -e "SELECT User, Host, plugin FROM mysql.user WHERE User='$DB_USER';"
+
+    echo "Deteniendo servidor temporal..."
+    mariadb-admin shutdown -uroot -p"$DB_ROOT_PASS"
+
+    echo "=== Inicialización completada ==="
 else
-    echo "MariaDB ya está inicializado."
+    echo "=== MariaDB ya inicializado ==="
 fi
 
-# --- Lanzamiento del Servidor ---
-echo "Lanzando MariaDB..."
+echo "=== Lanzando MariaDB ==="
 exec mysqld_safe --defaults-file=/etc/mysql/my.cnf --datadir=$DATADIR
