@@ -1,8 +1,16 @@
-# comando para entra como root 
+
+
 
 mariadb -u root -p
 
-# comando para entra como nquecedo 
 
-mariadb -u nquecedo -p
+mariadb -u nquecedo_db -p
 
+
+USE wordpress_db;
+
+
+SHOW TABLES;
+
+
+SELECT user, host, plugin FROM mysql.user;
